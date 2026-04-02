@@ -7,7 +7,7 @@
 //    - deleteProduct(id): DELETE /products/:id -> deletes product
 // - Notes: All functions throw on non-OK responses. BASE_URL should point to backend server.
 
-import { BASE_URL as CONFIG_BASE_URL } from '../config.example';
+import { BASE_URL as CONFIG_BASE_URL } from '../config';
 const BASE_URL = CONFIG_BASE_URL || 'https://your-backend.example';
 
 // Fetch the list of products from the backend.
