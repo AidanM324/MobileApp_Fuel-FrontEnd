@@ -1,42 +1,53 @@
-import React, { useEffect } from 'react';
-import { View, FlatList, ActivityIndicator, Button, StyleSheet, Alert } from 'react-native';
-import useProducts from '../hooks/useProducts';
-import basketApi from '../api/basketApi';
-import ProductItem from '../components/ProductItem';
+import React, { useState } from 'react';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, Alert, TouchableOpacity, TextInput } from 'react-native';
+import stationApi from '../api/stationApi';
 
-// Simple constant userId for demo - in a real app, use auth and proper user ids
-const DEMO_USER_ID = 'demo-user-1';
+export default function NearbyScreen() {
+  const [stations, setStations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [lat, setLat] = useState('53.3498');
+  const [lng, setLng] = useState('-6.2603');
 
-export default function ProductBrowser({ navigation }) {
-  const { products, loading, fetchProducts } = useProducts();
-
-  useEffect(() => {
-    // Fetch products on mount (do not clear the basket automatically)
-    fetchProducts().catch(err => Alert.alert('Error', String(err)));
-  }, []);
-
-  const handleAdd = async (productId) => {
+  const searchNearby = async () => {
     try {
-      await basketApi.addToBasket({ userId: DEMO_USER_ID, productId, quantity: 1 });
-      Alert.alert('Added', 'Product added to basket');
+      setLoading(true);
+      const data = await stationApi.getNearbyStations(lat, lng);
+      setStations(data);
+      if (data.length === 0) Alert.alert('No stations found nearby');
     } catch (err) {
-      Alert.alert('Error adding', String(err));
+      Alert.alert('Error', String(err));
+    } finally {
+      setLoading(false);
     }
   };
 
+  const renderStation = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={styles.name}>{item.name}</Text>
+      <Text style={styles.address}>{item.address}</Text>
+      <View style={styles.prices}>
+        <Text style={styles.petrol}>⛽ Petrol: €{item.prices?.petrol ?? 'N/A'}</Text>
+        <Text style={styles.diesel}>🛢 Diesel: €{item.prices?.diesel ?? 'N/A'}</Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Button title="Open Basket" onPress={() => navigation.navigate('ProductBasket', { userId: DEMO_USER_ID })} />
+      <View style={styles.searchBox}>
+        <TextInput style={styles.input} placeholder="Latitude" value={lat} onChangeText={setLat} keyboardType="numeric" />
+        <TextInput style={styles.input} placeholder="Longitude" value={lng} onChangeText={setLng} keyboardType="numeric" />
+        <TouchableOpacity style={styles.button} onPress={searchNearby}>
+          <Text style={styles.buttonText}>Search Nearby</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? <ActivityIndicator size="large" /> : (
         <FlatList
-          data={products}
-          keyExtractor={(i, idx) => i._id || i.id || String(idx)}
-          renderItem={({ item }) => (
-            <ProductItem item={item} onAdd={handleAdd} />
-          )}
+          data={stations}
+          keyExtractor={(item) => item._id}
+          renderItem={renderStation}
+          ListEmptyComponent={<Text style={styles.empty}>Search for nearby stations above.</Text>}
         />
       )}
     </View>
@@ -44,6 +55,16 @@ export default function ProductBrowser({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  container: { flex: 1, padding: 12, backgroundColor: '#f5f5f5' },
+  searchBox: { backgroundColor: '#fff', padding: 16, borderRadius: 10, marginBottom: 12, elevation: 2 },
+  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 8 },
+  button: { backgroundColor: '#2196F3', padding: 14, borderRadius: 8, alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: '600' },
+  card: { backgroundColor: '#fff', padding: 16, borderRadius: 10, marginBottom: 12, elevation: 2 },
+  name: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  address: { color: '#666', marginBottom: 8 },
+  prices: { flexDirection: 'row', justifyContent: 'space-between' },
+  petrol: { color: '#2196F3', fontWeight: '600' },
+  diesel: { color: '#4CAF50', fontWeight: '600' },
+  empty: { textAlign: 'center', color: '#666', marginTop: 40 },
 });
