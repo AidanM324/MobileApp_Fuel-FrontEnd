@@ -7,9 +7,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import HomeScreen from './screens/HomeScreen';
-import InventoryScreen from './screens/InventoryScreen';
-import ProductBrowser from './screens/ProductBrowser';
-import ProductBasket from './screens/ProductBasket';
+import StationsScreen from './screens/StationsScreen';
+import NearbyScreen from './screens/NearbyScreen';
+import FavouritesScreen from './screens/FavouritesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,9 +18,9 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home">
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Inventory" component={InventoryScreen} options={{ title: 'Inventory' }} />
-        <Stack.Screen name="ProductBrowser" component={ProductBrowser} options={{ title: 'Products' }} />
-        <Stack.Screen name="ProductBasket" component={ProductBasket} options={{ title: 'Basket' }} />
+        <Stack.Screen name="Stations" component={StationsScreen} options={{ title: 'Stations' }} />
+        <Stack.Screen name="Nearby" component={NearbyScreen} options={{ title: 'Nearby' }} />
+        <Stack.Screen name="Favourites" component={FavouritesScreen} options={{ title: 'Favourites' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
