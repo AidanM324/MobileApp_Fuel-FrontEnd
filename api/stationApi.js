@@ -1,79 +1,69 @@
-// productApi
-// - Purpose: Centralized product-related HTTP calls to the backend REST API.
-// - Exports:
-//    - getProducts(): GET /products -> returns array of products
-//    - createProduct(body): POST /products -> creates product
-//    - updateProduct(id, body): PUT /products/:id -> updates product
-//    - deleteProduct(id): DELETE /products/:id -> deletes product
-// - Notes: All functions throw on non-OK responses. BASE_URL should point to backend server.
+// api/stationApi.js
+import { add } from 'react-native/types_generated/Libraries/Animated/AnimatedExports';
+import { BASE_URL } from '../config';
 
-import { BASE_URL as CONFIG_BASE_URL } from '../config';
-const BASE_URL = CONFIG_BASE_URL || 'https://your-backend.example';
+// Get all stations (public)
+async function getAllStations() {
+  const res = await fetch(`${BASE_URL}/stations`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Server responded ${res.status}`);
 
-// Fetch the list of products from the backend.
-// Throws an Error if the response is not ok.
-async function getProducts() {
-  const res = await fetch(`${BASE_URL}/products`, {
-    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+  return res.json();
+}
+
+// GET nearby stations by lat/lng (public)
+async function getNearbyStations(lat, lng, maxDistance = 5000) {
+  const res = await fetch(
+    `${BASE_URL}/stations/nearby?lat=${lat}&lng=${lng}&maxDistance=${maxDistance}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  if (!res.ok) throw new Error(`Server responded ${res.status}`);
+  return res.json();
+}
+
+// GET user favourites (protected)
+async function getFavourites(token) {
+  const res = await fetch(`${BASE_URL}/users/favourites`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
   });
   if (!res.ok) throw new Error(`Server responded ${res.status}`);
   return res.json();
 }
 
-// Create a product by POSTing the provided body (expects JSON serializable body).
-// Returns parsed JSON response when available; throws on non-OK responses.
-async function createProduct(body) {
-  const res = await fetch(`${BASE_URL}/products`, {
+// Add a favourite (protected)
+async function addFavourite(stationId, token) {
+  const res = await fetch(`${BASE_URL}/users/favourites/${stationId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Server: ${res.status} ${text}`);
-  }
-  try {
-    return await res.json();
-  } catch (err) {
-    return null;
-  }
+  if (!res.ok) throw new Error(`Server responded ${res.status}`);
+  return res.json();
 }
 
-// Update an existing product by id using PUT. Body should contain the updated fields.
-// Throws on non-OK responses and returns parsed JSON when available.
-async function updateProduct(id, body) {
-  const res = await fetch(`${BASE_URL}/products/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Server: ${res.status} ${text}`);
-  }
-  try {
-    return await res.json();
-  } catch (err) {
-    return null;
-  }
-}
-
-// Delete a product by id. Returns true on success, throws on failure.
-async function deleteProduct(id) {
-  const res = await fetch(`${BASE_URL}/products/${id}`, {
+// Remove a favourite (protected)
+async function removeFavourite(stationId, token) {
+  const res = await fetch(`${BASE_URL}/users/favourites/${stationId}`, {
     method: 'DELETE',
-    headers: { 'ngrok-skip-browser-warning': 'true' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Server: ${res.status} ${text}`);
-  }
-  return true;
+  if (!res.ok) throw new Error(`Server responded ${res.status}`);
+  return res.json();
 }
 
 export default {
-  getProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
+  getAllStations,
+  getNearbyStations,
+  getFavourites,
+  addFavourite,
+  removeFavourite,
 };
