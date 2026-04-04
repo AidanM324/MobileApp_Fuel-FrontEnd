@@ -3,7 +3,7 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, Alert, TouchableOp
 import authApi from '../api/authApi';
 import stationApi from '../api/stationApi';
 
-export default function FavouritesScreen() {
+export default function FavouritesScreen({ navigation }) {
   const [token, setToken] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +44,9 @@ export default function FavouritesScreen() {
         <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.buttonText}>Create Account</Text>
         </TouchableOpacity>
       </View>
     );
@@ -86,4 +89,5 @@ const styles = StyleSheet.create({
   petrol: { color: '#2196F3', fontWeight: '600' },
   diesel: { color: '#4CAF50', fontWeight: '600' },
   empty: { textAlign: 'center', color: '#666', marginTop: 40 },
+  registerButton: { backgroundColor: '#4CAF50', marginTop: 12 },
 });
