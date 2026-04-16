@@ -10,6 +10,7 @@ import HomeScreen from './screens/HomeScreen';
 import StationsScreen from './screens/StationsScreen';
 import NearbyScreen from './screens/NearbyScreen';
 import FavouritesScreen from './screens/FavouritesScreen';
+import RegisterScreen from './screens/RegisterScreen';  
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +22,7 @@ export default function App() {
         <Stack.Screen name="Stations" component={StationsScreen} options={{ title: 'Stations' }} />
         <Stack.Screen name="Nearby" component={NearbyScreen} options={{ title: 'Nearby' }} />
         <Stack.Screen name="Favourites" component={FavouritesScreen} options={{ title: 'Favourites' }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create Account' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
