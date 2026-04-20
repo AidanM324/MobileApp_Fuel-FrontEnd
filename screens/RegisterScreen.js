@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, Alert, ActivityIndicator
+} from 'react-native';
 import authApi from '../api/authApi';
 
 export default function RegisterScreen({ navigation }) {
@@ -15,12 +18,11 @@ export default function RegisterScreen({ navigation }) {
     if (password.length < 6) {
       return Alert.alert('Validation', 'Password must be at least 6 characters');
     }
-
     try {
       setLoading(true);
       const data = await authApi.signup(name, email, password);
-      Alert.alert('Success!', `Welcome ${data.user.name}! You can now log in.`);
-      navigation.navigate('Favourites');
+      Alert.alert('Account Created!', `Welcome ${data.user.name}! Please log in.`);
+      navigation.navigate('Login');
     } catch (err) {
       Alert.alert('Registration Error', String(err));
     } finally {
@@ -60,7 +62,7 @@ export default function RegisterScreen({ navigation }) {
         <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Register'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Favourites')}>
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
         <Text style={styles.loginLink}>Already have an account? Login</Text>
       </TouchableOpacity>
     </View>
