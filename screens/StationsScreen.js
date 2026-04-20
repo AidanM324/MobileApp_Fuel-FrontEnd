@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator,
-  StyleSheet, Alert, TouchableOpacity
+  StyleSheet, Alert, TouchableOpacity, Linking
 } from 'react-native';
 import stationApi from '../api/stationApi';
 import { sendFavouriteNotification, requestNotificationPermission } from '../hooks/useNotifications';
@@ -66,6 +66,14 @@ export default function StationsScreen({ token }) {
     }
   };
 
+  const openDirections = (station) => {
+    const lat = station.location?.coordinates[1];
+    const lng = station.location?.coordinates[0];
+    const name = encodeURIComponent(station.name);
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${name}`;
+    Linking.openURL(url);
+  }
+
   const renderStation = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.name}>{item.name}</Text>
@@ -79,6 +87,12 @@ export default function StationsScreen({ token }) {
         onPress={() => handleFavourite(item._id, item.name)}
       >
         <Text style={styles.favButtonText}>⭐ Save as Favourite</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.dirButton}
+        onPress={() => openDirections(item)}
+      >
+        <Text style={styles.dirButtonText}>Get Directions</Text>
       </TouchableOpacity>
     </View>
   );
@@ -146,5 +160,7 @@ const styles = StyleSheet.create({
   diesel: { color: '#4CAF50', fontWeight: '600' },
   favButton: { backgroundColor: '#FF9800', padding: 10, borderRadius: 8, alignItems: 'center' },
   favButtonText: { color: '#fff', fontWeight: '600' },
+  dirButton: { backgroundColor: '#2196F3', padding: 10, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  dirButtonText: { color: '#fff', fontWeight: '600' },
   empty: { textAlign: 'center', color: '#666', marginTop: 40 },
 });
