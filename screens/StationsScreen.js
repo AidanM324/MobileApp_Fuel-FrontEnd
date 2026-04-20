@@ -6,10 +6,12 @@ import {
 import stationApi from '../api/stationApi';
 import authApi from '../api/authApi';
 import { requestNotificationPermission, sendFavouriteNotification } from '../hooks/useNotifications';
+import { initDB, cacheStations, getCachedStations, isCacheFresh } from '../hooks/useStationCache';
 
 export default function StationsScreen() {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
   const [token, setToken] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,15 +20,41 @@ export default function StationsScreen() {
   const [pendingFavName, setPendingFavName] = useState(null);
 
   useEffect(() => {
+    // Initialise SQLite database on mount
+    initDB();
     fetchStations();
-    requestNotificationPermission(); // ask for notification permission on load
+    requestNotificationPermission();
   }, []);
 
   const fetchStations = async () => {
     try {
       setLoading(true);
-      const data = await stationApi.getAllStations();
-      setStations(data);
+      setIsOffline(false);
+
+      // 1. Check SQLite cache first — show instantly if fresh
+      const cached = getCachedStations();
+      if (cached.length > 0) {
+        setStations(cached);
+        setLoading(false);
+        console.log('Loaded from SQLite cache');
+      }
+
+      // 2. Always try to fetch fresh data from API in background
+      try {
+        const data = await stationApi.getAllStations();
+        setStations(data);
+        cacheStations(data); // save fresh data to SQLite
+        console.log('Loaded fresh data from API');
+      } catch (apiErr) {
+        // 3. If API fails, use cache as fallback
+        if (cached.length > 0) {
+          setIsOffline(true);
+          console.log('Offline — showing cached data');
+        } else {
+          Alert.alert('No Connection', 'Could not load stations and no cached data available.');
+        }
+      }
+
     } catch (err) {
       Alert.alert('Error', String(err));
     } finally {
@@ -35,7 +63,6 @@ export default function StationsScreen() {
   };
 
   const handleFavourite = (stationId, stationName) => {
-    // If not logged in, show login form and remember which station they wanted
     if (!token) {
       setPendingFavId(stationId);
       setPendingFavName(stationName);
@@ -48,8 +75,8 @@ export default function StationsScreen() {
   const saveFavourite = async (stationId, stationName, authToken) => {
     try {
       await stationApi.addFavourite(stationId, authToken);
-      await sendFavouriteNotification(stationName); // 🔔 send notification
-      Alert.alert('⭐ Saved!', 'Station added to your favourites');
+      await sendFavouriteNotification(stationName);
+      Alert.alert('Saved!', 'Station added to your favourites');
     } catch (err) {
       Alert.alert('Error', String(err));
     }
@@ -64,8 +91,6 @@ export default function StationsScreen() {
       setToken(data.token);
       setShowLogin(false);
       Alert.alert('Logged in!', `Welcome ${data.user.name}`);
-
-      // Save the pending favourite if there was one
       if (pendingFavId) {
         saveFavourite(pendingFavId, pendingFavName, data.token);
         setPendingFavId(null);
@@ -93,12 +118,21 @@ export default function StationsScreen() {
     </View>
   );
 
-  if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+  if (loading && stations.length === 0) {
+    return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+  }
 
   return (
     <View style={styles.container}>
 
-      {/* Login popup when user tries to favourite without being logged in */}
+      {/* Offline banner */}
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineText}>📴 Offline — showing cached data</Text>
+        </View>
+      )}
+
+      {/* Login popup */}
       {showLogin && (
         <View style={styles.loginBox}>
           <Text style={styles.loginTitle}>Login to save favourites</Text>
@@ -126,7 +160,7 @@ export default function StationsScreen() {
         </View>
       )}
 
-      {/* Show logged in status */}
+      {/* Logged in status */}
       {token && (
         <View style={styles.loggedInBar}>
           <Text style={styles.loggedInText}>✅ Logged in — tap ⭐ to save favourites</Text>
@@ -145,6 +179,8 @@ export default function StationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12, backgroundColor: '#f5f5f5' },
+  offlineBanner: { backgroundColor: '#FF5722', padding: 10, borderRadius: 8, marginBottom: 8 },
+  offlineText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
   card: { backgroundColor: '#fff', padding: 16, borderRadius: 10, marginBottom: 12, elevation: 2 },
   name: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   address: { color: '#666', marginBottom: 8 },
