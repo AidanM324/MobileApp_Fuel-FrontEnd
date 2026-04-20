@@ -6,10 +6,15 @@ import {
 import stationApi from '../api/stationApi';
 import authApi from '../api/authApi';
 import { requestNotificationPermission, sendFavouriteNotification } from '../hooks/useNotifications';
+import { initDB, cacheStations, getCachedStations } from '../hooks/useStationCache';
+import SortBar from '../components/SortBar';
+import { sortStations } from '../hooks/useSortStations';
 
 export default function StationsScreen() {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+  const [sortOption, setSortOption] = useState(null);
   const [token, setToken] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,6 +23,7 @@ export default function StationsScreen() {
   const [pendingFavName, setPendingFavName] = useState(null);
 
   useEffect(() => {
+    initDB();
     fetchStations();
     requestNotificationPermission();
   }, []);
@@ -25,8 +31,23 @@ export default function StationsScreen() {
   const fetchStations = async () => {
     try {
       setLoading(true);
-      const data = await stationApi.getAllStations();
-      setStations(data);
+      setIsOffline(false);
+      const cached = getCachedStations();
+      if (cached.length > 0) {
+        setStations(cached);
+        setLoading(false);
+      }
+      try {
+        const data = await stationApi.getAllStations();
+        setStations(data);
+        cacheStations(data);
+      } catch (apiErr) {
+        if (cached.length > 0) {
+          setIsOffline(true);
+        } else {
+          Alert.alert('No Connection', 'Could not load stations and no cached data available.');
+        }
+      }
     } catch (err) {
       Alert.alert('Error', String(err));
     } finally {
@@ -47,7 +68,7 @@ export default function StationsScreen() {
   const saveFavourite = async (stationId, stationName, authToken) => {
     try {
       await stationApi.addFavourite(stationId, authToken);
-      await sendFavouriteNotification(stationName); // 🔔 send notification
+      await sendFavouriteNotification(stationName);
       Alert.alert('⭐ Saved!', 'Station added to your favourites');
     } catch (err) {
       Alert.alert('Error', String(err));
@@ -90,7 +111,11 @@ export default function StationsScreen() {
     </View>
   );
 
-  if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+  if (loading && stations.length === 0) {
+    return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+  }
+
+  const sortedStations = sortStations(stations, sortOption);
 
   return (
     <View style={styles.container}>
@@ -100,7 +125,6 @@ export default function StationsScreen() {
         </View>
       )}
 
-      {/* Login popup when user tries to favourite without being logged in */}
       {showLogin && (
         <View style={styles.loginBox}>
           <Text style={styles.loginTitle}>Login to save favourites</Text>
@@ -128,7 +152,6 @@ export default function StationsScreen() {
         </View>
       )}
 
-      {/* Show logged in status */}
       {token && (
         <View style={styles.loggedInBar}>
           <Text style={styles.loggedInText}>✅ Logged in — tap ⭐ to save favourites</Text>
