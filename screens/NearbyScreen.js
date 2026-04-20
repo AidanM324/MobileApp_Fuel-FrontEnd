@@ -5,39 +5,31 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import stationApi from '../api/stationApi';
+import SortBar from '../components/SortBar';
+import { sortStations } from '../hooks/useSortStations';
 
 export default function NearbyScreen() {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [locationText, setLocationText] = useState('');
+  const [sortOption, setSortOption] = useState(null);
 
   const searchNearby = async () => {
     try {
       setLoading(true);
-
-      // 1. Ask user for location permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission Denied',
-          'Please enable location permissions in your phone settings to find nearby stations.'
-        );
+        Alert.alert('Permission Denied', 'Please enable location permissions in your phone settings.');
         return;
       }
-
-      // 2. Get real GPS coordinates from the device
       const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
       setLocationText(`📍 ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-
-      // 3. Pass real coordinates to your existing backend endpoint
       const data = await stationApi.getNearbyStations(latitude, longitude);
       setStations(data);
-
       if (data.length === 0) {
         Alert.alert('No Stations Found', 'No fuel stations found within 5km of your location.');
       }
-
     } catch (err) {
       Alert.alert('Error', String(err));
     } finally {
@@ -56,6 +48,8 @@ export default function NearbyScreen() {
     </View>
   );
 
+  const sortedStations = sortStations(stations, sortOption);
+
   return (
     <View style={styles.container}>
       <View style={styles.searchBox}>
@@ -68,11 +62,15 @@ export default function NearbyScreen() {
         ) : null}
       </View>
 
+      {stations.length > 0 && (
+        <SortBar sortOption={sortOption} onSortChange={setSortOption} />
+      )}
+
       {loading ? (
         <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
-          data={stations}
+          data={sortedStations}
           keyExtractor={(item) => item._id}
           renderItem={renderStation}
           ListEmptyComponent={
@@ -92,20 +90,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', padding: 16,
     borderRadius: 10, marginBottom: 12, elevation: 2
   },
-  searchTitle: {
-    fontSize: 16, fontWeight: '700',
-    marginBottom: 12, textAlign: 'center'
-  },
-  button: {
-    backgroundColor: '#2196F3', padding: 14,
-    borderRadius: 8, alignItems: 'center'
-  },
+  searchTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, textAlign: 'center' },
+  button: { backgroundColor: '#2196F3', padding: 14, borderRadius: 8, alignItems: 'center' },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   locationText: { textAlign: 'center', color: '#666', marginTop: 8, fontSize: 12 },
-  card: {
-    backgroundColor: '#fff', padding: 16,
-    borderRadius: 10, marginBottom: 12, elevation: 2
-  },
+  card: { backgroundColor: '#fff', padding: 16, borderRadius: 10, marginBottom: 12, elevation: 2 },
   name: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   address: { color: '#666', marginBottom: 8 },
   prices: { flexDirection: 'row', justifyContent: 'space-between' },

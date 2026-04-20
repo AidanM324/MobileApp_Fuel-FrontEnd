@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import authApi from '../api/authApi';
 import stationApi from '../api/stationApi';
+import SortBar from '../components/SortBar';
+import { sortStations } from '../hooks/useSortStations';
 
 export default function FavouritesScreen({ navigation }) {
   const [token, setToken] = useState(null);
@@ -12,6 +14,7 @@ export default function FavouritesScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sortOption, setSortOption] = useState(null);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -45,7 +48,6 @@ export default function FavouritesScreen({ navigation }) {
   const handleRemove = async (stationId) => {
     try {
       await stationApi.removeFavourite(stationId, token);
-      // Remove from local state instantly without refetching
       setFavourites(prev => prev.filter(s => s._id !== stationId));
       Alert.alert('Removed', 'Station removed from favourites');
     } catch (err) {
@@ -53,13 +55,11 @@ export default function FavouritesScreen({ navigation }) {
     }
   };
 
-  // ── Not logged in — show login form ──────────────────────
   if (!token) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>⭐ My Favourites</Text>
         <Text style={styles.subtitle}>Login to view your saved stations</Text>
-
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -75,11 +75,9 @@ export default function FavouritesScreen({ navigation }) {
           onChangeText={setPassword}
           secureTextEntry
         />
-
         <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[styles.button, styles.registerButton]}
           onPress={() => navigation.navigate('Register')}
@@ -90,16 +88,21 @@ export default function FavouritesScreen({ navigation }) {
     );
   }
 
-  // ── Logged in — show favourites ───────────────────────────
+  const sortedFavourites = sortStations(favourites, sortOption);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>⭐ My Favourite Stations</Text>
+
+      {favourites.length > 0 && (
+        <SortBar sortOption={sortOption} onSortChange={setSortOption} />
+      )}
 
       {loading ? (
         <ActivityIndicator size="large" color="#2196F3" />
       ) : (
         <FlatList
-          data={favourites}
+          data={sortedFavourites}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
             <View style={styles.card}>
@@ -140,19 +143,13 @@ const styles = StyleSheet.create({
   },
   registerButton: { backgroundColor: '#4CAF50' },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  card: {
-    backgroundColor: '#fff', padding: 16,
-    borderRadius: 10, marginBottom: 12, elevation: 2
-  },
+  card: { backgroundColor: '#fff', padding: 16, borderRadius: 10, marginBottom: 12, elevation: 2 },
   name: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   address: { color: '#666', marginBottom: 8 },
   prices: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   petrol: { color: '#2196F3', fontWeight: '600' },
   diesel: { color: '#4CAF50', fontWeight: '600' },
-  removeButton: {
-    backgroundColor: '#f44336', padding: 10,
-    borderRadius: 8, alignItems: 'center'
-  },
+  removeButton: { backgroundColor: '#f44336', padding: 10, borderRadius: 8, alignItems: 'center' },
   removeButtonText: { color: '#fff', fontWeight: '600' },
   empty: { textAlign: 'center', color: '#666', marginTop: 40, fontSize: 14 },
 });
