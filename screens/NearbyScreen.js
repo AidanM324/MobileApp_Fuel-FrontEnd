@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator,
-  StyleSheet, Alert, TouchableOpacity
+  StyleSheet, Alert, TouchableOpacity, Linking
 } from 'react-native';
 import * as Location from 'expo-location';
 import stationApi from '../api/stationApi';
@@ -37,6 +37,14 @@ export default function NearbyScreen() {
     }
   };
 
+  const openDirections = (station) => {
+    const lat = station.location?.coordinates[1];
+    const lng = station.location?.coordinates[0];
+    const name = encodeURIComponent(station.name);
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${name}`;
+    Linking.openURL(url);
+  };
+
   const renderStation = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.name}>{item.name}</Text>
@@ -45,6 +53,12 @@ export default function NearbyScreen() {
         <Text style={styles.petrol}>⛽ Petrol: €{item.prices?.petrol ?? 'N/A'}</Text>
         <Text style={styles.diesel}>🛢 Diesel: €{item.prices?.diesel ?? 'N/A'}</Text>
       </View>
+      <TouchableOpacity
+        style={styles.dirButton}
+        onPress={() => openDirections(item)}
+      >
+        <Text style={styles.dirButtonText}>Get Directions</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -101,4 +115,6 @@ const styles = StyleSheet.create({
   petrol: { color: '#2196F3', fontWeight: '600' },
   diesel: { color: '#4CAF50', fontWeight: '600' },
   empty: { textAlign: 'center', color: '#666', marginTop: 40, fontSize: 14 },
+  dirButton: { backgroundColor: '#2196F3', padding: 10, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  dirButtonText: { color: '#fff', fontWeight: '600' },
 });

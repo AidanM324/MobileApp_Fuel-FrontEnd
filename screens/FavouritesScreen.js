@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator,
-  StyleSheet, Alert, TouchableOpacity
+  StyleSheet, Alert, TouchableOpacity, Linking
 } from 'react-native';
 import stationApi from '../api/stationApi';
 import SortBar from '../components/SortBar';
@@ -38,6 +38,14 @@ export default function FavouritesScreen({ token }) {
     }
   };
 
+  const openDirections = (station) => {
+    const lat = station.location?.coordinates[1];
+    const lng = station.location?.coordinates[0];
+    const name = encodeURIComponent(station.name);
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${name}`;
+    Linking.openURL(url);
+  }; 
+
   const sortedFavourites = sortStations(favourites, sortOption);
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
@@ -67,6 +75,12 @@ export default function FavouritesScreen({ token }) {
             >
               <Text style={styles.removeButtonText}>🗑 Remove Favourite</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.dirButton}
+              onPress={() => openDirections(item)}
+            >
+              <Text style={styles.dirButtonText}>Get Directions</Text>
+            </TouchableOpacity>
           </View>
         )}
         ListEmptyComponent={
@@ -89,4 +103,6 @@ const styles = StyleSheet.create({
   removeButton: { backgroundColor: '#f44336', padding: 10, borderRadius: 8, alignItems: 'center' },
   removeButtonText: { color: '#fff', fontWeight: '600' },
   empty: { textAlign: 'center', color: '#666', marginTop: 40, fontSize: 14 },
-});
+  dirButton: { backgroundColor: '#2196F3', padding: 10, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  dirButtonText: { color: '#fff', fontWeight: '600' },
+}); 
