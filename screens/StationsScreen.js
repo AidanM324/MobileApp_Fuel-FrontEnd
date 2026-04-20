@@ -8,12 +8,14 @@ import { sendFavouriteNotification, requestNotificationPermission } from '../hoo
 import { initDB, cacheStations, getCachedStations } from '../hooks/useStationCache';
 import SortBar from '../components/SortBar';
 import { sortStations } from '../hooks/useSortStations';
+import CountyPicker from '../components/CountyPicker';
 
 export default function StationsScreen({ token }) {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [sortOption, setSortOption] = useState(null);
+  const [selectedCounty, setSelectedCounty] = useState('All Counties');
 
   useEffect(() => {
     initDB();
@@ -87,6 +89,12 @@ export default function StationsScreen({ token }) {
 
   const sortedStations = sortStations(stations, sortOption);
 
+  const filteredStations = selectedCounty === 'All Counties'
+    ? sortedStations
+    : sortedStations.filter(s =>
+        s.address?.toLowerCase().includes(selectedCounty.toLowerCase())
+      );
+
   return (
     <View style={styles.container}>
       {isOffline && (
@@ -101,13 +109,24 @@ export default function StationsScreen({ token }) {
         </View>
       )}
 
+      <CountyPicker
+        selectedCounty={selectedCounty}
+        onCountyChange={setSelectedCounty}
+      />
+
       <SortBar sortOption={sortOption} onSortChange={setSortOption} />
 
       <FlatList
-        data={sortedStations}
+        data={filteredStations}
         keyExtractor={(item) => item._id}
         renderItem={renderStation}
-        ListEmptyComponent={<Text style={styles.empty}>No stations found.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {selectedCounty === 'All Counties'
+              ? 'No stations found.'
+              : `No stations found in ${selectedCounty}.`}
+          </Text>
+        }
       />
     </View>
   );
